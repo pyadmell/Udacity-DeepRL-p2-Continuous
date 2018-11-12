@@ -1,14 +1,19 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
 class FCBody(nn.Module):
-    def __init__(self, state_dim, hidden_units, gate=F.relu):
+    def __init__(self, state_dim, hiddens, func=F.relu):
         super(FCBody, self).__init__()
-        dims = (state_dim, ) + hidden_units
-        fc_list = [nn.Linear(dim_in, dim_out)
-                   for dim_in, dim_out in zip(dims[:-1], dims[1:])]
-        self.layers = nn.ModuleList()
-        self.gate = gate
-        self.feature_dim = dims[-1]
+
+        fc_first = nn.Linear(state_dim, hiddens[0])
+        self.layers = nn.ModuleList([fc_first])
+        layer_sizes = zip(hiddens[:-1], hiddens[1:])
+        self.layers.extend([nn.Linear(h1, h2)
+                            for h1, h2 in layer_sizes])
 
     def forward(self, x):
         for layer in self.layers:
-            x = self.gate(layer(x))
+            x = self.func(layer(x))
         return x

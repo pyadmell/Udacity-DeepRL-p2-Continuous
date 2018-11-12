@@ -1,21 +1,11 @@
 """PPO agent
 """
-
-class BaseAgent:
-    def __init__(self):
-        pass
-
-    def step(self):
-        pass
-
-    def save(self, fpath):
-        pass
-
-    def restore(self, fpath):
-        pass
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 
-class PPOAgent(BaseAgent):
+class PPOAgent:
     def __init__(self):
         """PPO Agent
         Parameters
@@ -30,4 +20,14 @@ class PPOAgent(BaseAgent):
     def step(self):
         """1ステップ進める
         """
-        pass
+        # rollout step
+        # environment を何ステップか進める
+        # states, actions, rewards, next_states の組を得る
+        # 同時に log_prob と value も取得
+
+        # reward の計算 .. 割引ありの reward を算出
+        # 割引ありの reward から value を引いて advantage としておく
+
+        # ミニバッチ更新する
+        # 綺麗にやるのであれば、shuffle すべきところだが
+        # on-policy の順序に準じる

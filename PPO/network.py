@@ -4,62 +4,35 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from .utils import FCBody
 
 
-class BaseNetwork:
-    def __init__(self):
-        pass
-
-    def forward(states, actions=None):
-        pass
-
-    def save(self, fpath):
-        pass
-
-    def restore(self, fpath):
-        pass
-
-
-class RandomContinuousNetwork(BaseNetwork):
-    def __init__(self):
-        pass
-
-    def forward(states, actions=None):
-        pass
-
-
-class GaussianActorCriticNetwork(BaseNetwork):
+class GaussianActorCriticNetwork:
     """連続分布を出力するような Actor-Critic Network モデル
     Actor としては State から連続を出すようなモデル
     Critic としては State から Value を出力するモデル
     """
-    def __init__(self, state_size=1, action_size=1,
-        hiddens_phi=[128, 64, 32],
-        hiddens_actor=[],
-        hiddens_critic=[]):
+    def __init__(self, state_dim=1, action_dim=1,
+        hiddens_actor=[64, 64], hiddens_critic=[64, 64]):
         super(GaussianActorCriticNetwork, self).__init__()
         self.seed = torch.manual_seed(seed)
 
-        fc_first = nn.Linear(state, hiddens_phi[0])
-        self.network_phi = nn.ModuleList([fc_first])
-        layer_sizes = zip(hidden_layers[:-1], hidden_layers[1:])
-        self.network_phi.extend([nn.Linear(h1, h2)
-                                   for h1, h2 in layer_sizes])
-        self.output = nn.Linear(hidden_layers[-1], action_size)
-
-
-        model_phi = ...
-        # actorモデルの生成
-        model_actor = ...
-        # criticモデルの生成
-        model_critic = ...
+        self.fc_actor = FCBody(state_size, hiddens_actor)
+        self.fc_critic = FCBody(state_size, hiddens_critic)
+        self.fc_actor_last = nn.Linear(hiddens_actor[-1], action_dim)
+        self.fc_critic_last = nn.Linear(hiddens_actor[-1], 1)
+        self.sigma = torch.zeros(1, action_dim)
 
     def forward(states, actions=None):
-        # phi予測
-        # actor モデル
-        # critic モデル
-        mu =
-        if not actions is None:
-            # action draw
+        z_actor = self.fc_actor(states)
+        mu = self.fc_actor_last(z_actor)
+
+        z_critic = self.fc_critic(states)
+        value = self.fc_critic_last(z_critic)
+
+        dist = torch.distributions.Normal(mu, self.sigma)
+        if not actions:
             actions = dist.sample()
-        logprob = dist.logprob(actions)
+        log_prob = dist.logprob(actions)
+        log_prob = torch.sum(log_prob, dim=1, keepdim=True)
+        return actions, log_prob, value
