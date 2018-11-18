@@ -16,18 +16,13 @@ class GaussianActorCriticNetwork:
         hiddens_actor=[64, 64], hiddens_critic=[64, 64], sigma=0.05):
         super(GaussianActorCriticNetwork, self).__init__()
 
-        self.fc_actor = FCNetwork(state_dim, hiddens_actor)
-        self.fc_critic = FCNetwork(state_dim, hiddens_critic)
-        self.fc_actor_last = nn.Linear(hiddens_actor[-1], action_dim)
-        self.fc_critic_last = nn.Linear(hiddens_actor[-1], 1)
+        self.fc_actor = FCNetwork(state_dim, action_dim, hiddens_actor)
+        self.fc_critic = FCNetwork(state_dim, 1, hiddens_critic)
         self.sigma = torch.ones(1, action_dim) * sigma
 
     def forward(self, states, actions=None):
-        z_actor = self.fc_actor(states)
-        mu = self.fc_actor_last(z_actor)
-
-        z_critic = self.fc_critic(states)
-        value = self.fc_critic_last(z_critic)
+        mu = self.fc_actor(states)
+        value = self.fc_critic(states)
 
         dist = torch.distributions.Normal(mu, self.sigma)
         if actions is None:
