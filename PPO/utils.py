@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def to_tensor(self, np_array):
+    return torch(np_array).float().to(self.device)
+
+
 class FCNetwork(nn.Module):
     def __init__(self, input_dim, output_dim, hiddens, func=F.relu):
         super(FCNetwork, self).__init__()

@@ -3,10 +3,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
 
 
 class PPOAgent:
-    def __init__(self, env, model, rollout=4, gamma=0.995, delta=0.3):
+    buffer_attrs = [
+        "states", "actions", "next_states",
+        "rewards", "log_probs", "values", "done",
+    ]
+
+    def __init__(self, env, model, rollout=4, tmax=50, n_epoch=20,
+                 gamma=0.995, delta=0.3, eps=0.1, device="cpu"):
         """PPO Agent
         Parameters
         ----------
@@ -17,94 +24,116 @@ class PPOAgent:
         """
         self.env = env
         self.model = model
+        self.opt_actor = optim.Adam(model.fc_actor.paramters(), lr=1e-4)
+        self.opt_critic = optim.Adam(model.fc_critic.parameters(), lr=1e-4)
         self.n_agent = n_agent
         self.state_dim = model.state_dim
         self.action_dim = model.action_dim
         self.tmax = tmax
+        self.n_epoch = n_epoch
+        self.gamma = gamma
+        self.delta = delta
+        self.eps = eps
+        self.device = device
+
         self.reset()
+
+    def to_tensor(self, x):
+        return torch.from_numpy(x).float().to(self.device)
 
     def reset(self):
         env_info = env.reset(train_mode=False)[brain_name]
-        self.states = env_info.vector_observations
+        self.last_states = self.to_tensor(env_info.vector_observations)
 
-    def collect_trjectories(self):
-        (buf_states, buf_actions, buf_next_states,
-         buf_rewards, buf_log_probs, buf_values) = [], [], [], [], [], []
+    def collect_trajectories(self):
+        buffer = dict([(k, []) for k in self.buffer_attrs])
 
-        states = self.states
-        for t in range(tmax):
+        for t in range(self.tmax):
+            memory = {}
+
             # draw action from model
-            actions, log_probs, values = self.model(self.states)
+            memory["states"] = self.last_states
+            pred = self.model(last_states)
+            pred_detached = [v.detach() for v in pred]
+            memory["actions"], memory["log_probs"], memory["values"] = pred_detached
 
             # one step forward
             env_info = env.step(actions)[brain_name]
-            next_states = env_info.vector_observations
-            rewards = env_info.rewards
-            dones = env_info.local_done
+            memory["next_states"] = self.to_tensor(env_info.vector_observations)
+            memory["rewards"] = self.to_tensor(env_info.rewards)
+            memory["dones"] = self.to_tensor(env_info.local_done)
 
-            # memorize to buffer
-            buf_states.append(self.states)
-            buf_actions.append(actions)
-            buf_next_states.append(next_states)
-            buf_rewards.append(rewards)
-            buf_log_probs.append(log_probs)
-            buf_values.append(values)
+            # stack one step memory to buffer
+            for k, v in memory.items():
+                buffer[k].append(v)
 
-            states = next_states
-            if np.any(dones):
+            self.last_states = memory["next_states"]
+            if np.any(memory["dones"]):  # TODO : dones are boolean, but torch.tesor
                 break
 
-        return (buf_states, buf_actions, buf_next_states,
-                buf_rewards, buf_log_probs, buf_values)
+        return buffer
 
     def calc_returns(self, rewards, values, last_values):
-        GAE = np.zeros_like(rewards)
-        returns = np.zeros_like(rewards)
+        n_step, n_agent = rewards.shape
 
-        GAE_current = np.zeros([1, rewards.shape[1]])
+        # Create empty buffer
+        GAE = torch.zeros_like(rewards)
+        returns = torch.zeros_like(rewards)
+
+        # Set start values
+        GAE_current = torch.zeros(n_agent)
         returns_current = last_values
         values_next = last_values
 
-        for irow in reversed(range(rewards.shape[0])):
+        for irow in reversed(range(n_step)):
             values_current = values[irow]
             rewards_current = rewards[irow]
 
+            # Calculate TD Error
             td_error = rewards_current + self.gamma * values_next - values_current
+            # Update GAE, returns
             GAE_current = td_error + self.gamma * self.delta * GAE_current
-            returns_current = rewards_current + self.gamma * return_current
-
+            returns_current = rewards_current + self.gamma * returns_current
+            # Set GAE, returns to buffer
             GAE[irow] = GAE_current
-            returns_current[irow] = returns_current
+            returns[irow] = returns_current
 
             values_next = values_current
 
-    def to_tensor(self, np_array):
-        return torch(np_array).float().to(self.device)
+        return GAE, returns
 
     def step(self):
         """1ステップ進める
         """
         # Collect Trajetories
-        (states, actions, next_states,
-         rewards, log_probs, values) = self.collect_trjectories()
+        trajectories = self.collect_trajectories()
 
         # Append Values collesponding to last states
-        _, _, _, _, last_values = self.model(states[-1])
-        GAE, returns = calc_returns(rewards, values, last_values)
+        last_values = self.model.state_values(self.last_states)
+        advantages, returns = calc_returns(trajectories["rewards"],
+                                           trajectories["values"], last_values)
 
-        states = self.to_tensor(states)
-        actions = self.to_tensor(actions)
-        next_states = self.to_tensor(next_states)
-        rewards = self.to_tensor(rewards)
-        log_probs = self.to_tensor(log_probs)
-        values = self.to_tensor(values)
+        (states, actions, next_states, rewards, old_log_probs,
+         old_values, done) = [trajectories[k] for k in buffer_attrs]
 
-        for epoch in range(n_epoch):
+        # Mini-batch update
+        for epoch in range(self.n_epoch):
+            log_probs, _, values = model.forward(states, actions)
 
+            # Actor Update
+            ratio = torch.exp(log_probs - old_log_probs + 1e-6)
+            ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
+            ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
+            loss_actor = torch.mean(ratio_PPO * advantages)
 
-        # reward の計算 .. 割引ありの reward を算出
-        # 割引ありの reward から value を引いて advantage としておく
+            self.opt_actor.zero_grad()
+            loss_actor.backward()
+            self.opt_actor.step()
+            del(loss_actor)
 
-        # ミニバッチ更新する
-        # 綺麗にやるのであれば、shuffle すべきところだが
-        # on-policy の順序に準じる
+            # Critic Update
+            loss_critic = (returns - values).pow(2).mean()
+            self.opt_critic.zero_grad()
+            loss_critic.backward()
+            self.opt_critic.step()
+            del(loss_critic)

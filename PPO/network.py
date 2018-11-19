@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import FCNetwork
+from .utils import FCNetwork, to_tensor
 
 
 class GaussianActorCriticNetwork:
@@ -30,3 +30,6 @@ class GaussianActorCriticNetwork:
         log_prob = dist.log_prob(actions)
         log_prob = torch.sum(log_prob, dim=1, keepdim=True)
         return actions, log_prob, value
+
+    def state_value(self, states):
+        return self.fc_critic(states)
