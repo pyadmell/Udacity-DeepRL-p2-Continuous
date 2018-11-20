@@ -1,5 +1,6 @@
 """PPO agent
 """
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,7 +10,7 @@ import torch.optim as optim
 class PPOAgent:
     buffer_attrs = [
         "states", "actions", "next_states",
-        "rewards", "log_probs", "values", "done",
+        "rewards", "log_probs", "values", "dones",
     ]
 
     def __init__(self, env, model, rollout=4, tmax=50, n_epoch=20,
@@ -24,9 +25,8 @@ class PPOAgent:
         """
         self.env = env
         self.model = model
-        self.opt_actor = optim.Adam(model.fc_actor.paramters(), lr=1e-4)
+        self.opt_actor = optim.Adam(model.fc_actor.parameters(), lr=1e-4)
         self.opt_critic = optim.Adam(model.fc_critic.parameters(), lr=1e-4)
-        self.n_agent = n_agent
         self.state_dim = model.state_dim
         self.action_dim = model.action_dim
         self.tmax = tmax
@@ -38,11 +38,12 @@ class PPOAgent:
 
         self.reset()
 
-    def to_tensor(self, x):
-        return torch.from_numpy(x).float().to(self.device)
+    def to_tensor(self, x, dtype=np.float32):
+        return torch.from_numpy(np.array(x).astype(dtype)).to(self.device)
 
     def reset(self):
-        env_info = env.reset(train_mode=False)[brain_name]
+        self.brain_name = self.env.brain_names[0]
+        env_info = self.env.reset(train_mode=True)[self.brain_name]
         self.last_states = self.to_tensor(env_info.vector_observations)
 
     def collect_trajectories(self):
@@ -53,23 +54,26 @@ class PPOAgent:
 
             # draw action from model
             memory["states"] = self.last_states
-            pred = self.model(last_states)
-            pred_detached = [v.detach() for v in pred]
-            memory["actions"], memory["log_probs"], memory["values"] = pred_detached
+            with torch.no_grad():
+                pred = self.model.forward(memory["states"])
+            memory["actions"], memory["log_probs"], memory["values"] = pred
 
             # one step forward
-            env_info = env.step(actions)[brain_name]
+            env_info = self.env.step(memory["actions"].numpy())[self.brain_name]
             memory["next_states"] = self.to_tensor(env_info.vector_observations)
             memory["rewards"] = self.to_tensor(env_info.rewards)
-            memory["dones"] = self.to_tensor(env_info.local_done)
+            memory["dones"] = self.to_tensor(env_info.local_done, dtype=np.uint8)
 
             # stack one step memory to buffer
             for k, v in memory.items():
-                buffer[k].append(v)
+                buffer[k].append(v.unsqueeze(0))
 
             self.last_states = memory["next_states"]
-            if np.any(memory["dones"]):  # TODO : dones are boolean, but torch.tesor
+            if memory["dones"].any():
                 break
+
+        for k, v in buffer.items():
+            buffer[k] = torch.cat(v, dim=0)
 
         return buffer
 
@@ -105,35 +109,42 @@ class PPOAgent:
     def step(self):
         """1ステップ進める
         """
+        self.model.eval()
+
         # Collect Trajetories
         trajectories = self.collect_trajectories()
 
+        # Calculate Score (averaged over agents)
+        score = trajectories["rewards"].sum(dim=0).mean()
+
         # Append Values collesponding to last states
-        last_values = self.model.state_values(self.last_states)
-        advantages, returns = calc_returns(trajectories["rewards"],
-                                           trajectories["values"], last_values)
+        with torch.no_grad():
+            last_values = self.model.state_values(self.last_states)
+        advantages, returns = self.calc_returns(trajectories["rewards"],
+                                                trajectories["values"],
+                                                last_values)
 
         (states, actions, next_states, rewards, old_log_probs,
-         old_values, done) = [trajectories[k] for k in buffer_attrs]
+         old_values, dones) = [trajectories[k] for k in self.buffer_attrs]
 
         # Mini-batch update
+        self.model.train()
         for epoch in range(self.n_epoch):
-            log_probs, _, values = model.forward(states, actions)
-
-            # Actor Update
-            ratio = torch.exp(log_probs - old_log_probs + 1e-6)
+            _, log_probs, values = self.model.forward(states, actions)
+            ratio = torch.exp(log_probs - old_log_probs)
             ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
             ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
-            loss_actor = torch.mean(ratio_PPO * advantages)
+            loss_actor = -torch.mean(ratio_PPO * advantages)
+            loss_critic = (returns - values).pow(2).mean()
 
             self.opt_actor.zero_grad()
             loss_actor.backward()
             self.opt_actor.step()
             del(loss_actor)
 
-            # Critic Update
-            loss_critic = (returns - values).pow(2).mean()
             self.opt_critic.zero_grad()
             loss_critic.backward()
             self.opt_critic.step()
             del(loss_critic)
+
+        return score
