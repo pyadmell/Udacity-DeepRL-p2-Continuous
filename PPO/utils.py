@@ -25,6 +25,9 @@ class FCNetwork(nn.Module):
         # Output Layers
         self.layers.append(nn.Linear(hiddens[-1], output_dim))
 
+        for layer in self.layers:
+            nn.init.xavier_uniform_(layer.weight)
+
     def forward(self, x):
         for layer in self.layers[:-1]:
             x = self.func(layer(x))
