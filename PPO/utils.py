@@ -8,10 +8,12 @@ def to_tensor(self, np_array):
 
 
 class FCNetwork(nn.Module):
-    def __init__(self, input_dim, output_dim, hiddens, func=F.relu):
+    def __init__(self, input_dim, output_dim, hiddens,
+                 func=F.relu, last_func=None):
         super(FCNetwork, self).__init__()
 
         self.func =  func
+        self.last_func = last_func
 
         # Input Layer
         fc_first = nn.Linear(input_dim, hiddens[0])
@@ -26,5 +28,10 @@ class FCNetwork(nn.Module):
     def forward(self, x):
         for layer in self.layers[:-1]:
             x = self.func(layer(x))
-        x = self.layers[-1](x)
+
+        if self.last_func is None:
+            x = self.layers[-1](x)
+        else:
+            x = self.last_func(self.layers[-1](x))
+
         return x
