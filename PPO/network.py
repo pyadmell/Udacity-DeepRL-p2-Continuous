@@ -23,7 +23,7 @@ class GaussianActorCriticNetwork(nn.Module):
         self.sigma = torch.ones(1, action_dim) * sigma
 
     def forward(self, states, actions=None):
-        mu = self.fc_actor(states).squeeze(-1)
+        mu = self.fc_actor(states)
         value = self.fc_critic(states).squeeze(-1)
 
         dist = torch.distributions.Normal(mu, self.sigma)
