@@ -14,7 +14,7 @@ class PPOAgent:
     ]
 
     def __init__(self, env, model, rollout=4, tmax=50, n_epoch=20,
-                 gamma=0.995, delta=0.3, eps=0.1, device="cpu"):
+                 gamma=0.96, delta=0.96, eps=0.2, device="cpu"):
         """PPO Agent
         Parameters
         ----------
