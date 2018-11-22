@@ -30,8 +30,8 @@ class GaussianActorCriticNetwork(nn.Module):
         if actions is None:
             actions = dist.sample()
         log_prob = dist.log_prob(actions)
-        log_prob = torch.sum(log_prob, dim=1)
-        entropy = torch.sum(dist.entropy(), dim=1)
+        log_prob = torch.sum(log_prob, dim=-1)
+        entropy = torch.sum(dist.entropy(), dim=-1)
         return actions, log_prob, entropy, value
 
     def state_values(self, states):
