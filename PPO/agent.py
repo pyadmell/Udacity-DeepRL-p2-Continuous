@@ -55,8 +55,8 @@ class PPOAgent:
             # draw action from model
             memory["states"] = self.last_states
             with torch.no_grad():
-                pred = self.model.forward(memory["states"])
-            memory["actions"], memory["log_probs"], memory["values"] = pred
+                pred = self.model(memory["states"])
+            memory["actions"], memory["log_probs"], _, memory["values"] = pred
 
             # one step forward
             env_info = self.env.step(memory["actions"].numpy())[self.brain_name]
@@ -130,11 +130,11 @@ class PPOAgent:
         # Mini-batch update
         self.model.train()
         for epoch in range(self.n_epoch):
-            _, log_probs, values = self.model.forward(states, actions)
+            _, log_probs, entropy, values = self.model(states, actions)
             ratio = torch.exp(log_probs - old_log_probs)
             ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
             ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
-            loss_actor = -torch.mean(ratio_PPO * advantages)
+            loss_actor = -torch.mean(ratio_PPO * advantages) - 0.01 * entropy.mean()
             loss_critic = (returns - values).pow(2).mean()
 
             self.opt_actor.zero_grad()
