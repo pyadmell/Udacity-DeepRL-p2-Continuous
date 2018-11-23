@@ -9,7 +9,7 @@ def to_tensor(self, np_array):
 
 class FCNetwork(nn.Module):
     def __init__(self, input_dim, output_dim, hiddens,
-                 func=F.relu, last_func=None):
+                 func=F.leaky_relu, last_func=None):
         super(FCNetwork, self).__init__()
 
         self.func =  func
