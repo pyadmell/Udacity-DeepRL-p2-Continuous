@@ -13,20 +13,20 @@ class GaussianActorCriticNetwork(nn.Module):
     Critic としては State から Value を出力するモデル
     """
     def __init__(self, state_dim=1, action_dim=1,
-        hiddens_actor=[64, 64], hiddens_critic=[64, 64], sigma=0.05):
+        hiddens_actor=[64, 64], hiddens_critic=[64, 64]):
         super(GaussianActorCriticNetwork, self).__init__()
 
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.fc_actor = FCNetwork(state_dim, action_dim, hiddens_actor, last_func=F.tanh)
         self.fc_critic = FCNetwork(state_dim, 1, hiddens_critic, last_func=F.softplus)
-        self.sigma = torch.ones(1, action_dim) * sigma
+        self.sigma = nn.Parameter(torch.zeros(1))
 
     def forward(self, states, actions=None):
         mu = self.fc_actor(states)
         value = self.fc_critic(states).squeeze(-1)
 
-        dist = torch.distributions.Normal(mu, self.sigma)
+        dist = torch.distributions.Normal(mu, F.softplus(self.sigma))
         if actions is None:
             actions = dist.sample()
         log_prob = dist.log_prob(actions)

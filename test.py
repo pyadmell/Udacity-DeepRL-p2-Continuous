@@ -52,7 +52,7 @@ def agent_test():
     print("Done.")
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
-    model = GaussianActorCriticNetwork(state_dim, action_dim, sigma=0.2)
+    model = GaussianActorCriticNetwork(state_dim, action_dim)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
     agent = PPOAgent(env, model, tmax=1000)
@@ -78,7 +78,7 @@ def train_test():
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
     model = GaussianActorCriticNetwork(state_dim, action_dim,
-        hiddens_actor=[32, 32], hiddens_critic=[32, 32], sigma=0.05)
+        hiddens_actor=[256, 64], hiddens_critic=[256, 64])
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
     agent = PPOAgent(env, model, tmax=2000, n_epoch=10)
