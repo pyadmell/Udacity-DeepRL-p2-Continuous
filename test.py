@@ -34,7 +34,7 @@ def simple_test():
     print(" ---- actions")
     print(actions[:5])
     print(f"   shape = {actions.shape}")
-    actions, log_probs, v = model.forward(x, actions)
+    actions, log_probs, entropy, v = model.forward(x, actions)
     print(" ---- actions")
     print(actions[:5])
     print(f"   shape = {actions.shape}")
