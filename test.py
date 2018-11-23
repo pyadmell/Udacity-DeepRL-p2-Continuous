@@ -81,7 +81,7 @@ def train_test():
         hiddens_actor=[256, 64], hiddens_critic=[256, 64])
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=2000, n_epoch=10)
+    agent = PPOAgent(env, model, tmax=1000, n_epoch=10, batch_size=128)
     print("Done.")
     n_step = 300
     for step in range(n_step):

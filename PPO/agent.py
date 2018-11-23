@@ -14,7 +14,7 @@ class PPOAgent:
     ]
 
     def __init__(self, env, model, rollout=4, tmax=50, n_epoch=20,
-                 gamma=0.96, delta=0.96, eps=0.2, device="cpu"):
+                 batch_size=128, gamma=0.995, delta=0.96, eps=0.20, device="cpu"):
         """PPO Agent
         Parameters
         ----------
@@ -31,6 +31,7 @@ class PPOAgent:
         self.action_dim = model.action_dim
         self.tmax = tmax
         self.n_epoch = n_epoch
+        self.batch_size = batch_size
         self.gamma = gamma
         self.delta = delta
         self.eps = eps
@@ -124,27 +125,41 @@ class PPOAgent:
                                                 trajectories["values"],
                                                 last_values)
 
-        (states, actions, next_states, rewards, old_log_probs,
-         old_values, dones) = [trajectories[k] for k in self.buffer_attrs]
-
         # Mini-batch update
         self.model.train()
-        for epoch in range(self.n_epoch):
-            _, log_probs, entropy, values = self.model(states, actions)
-            ratio = torch.exp(log_probs - old_log_probs)
-            ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
-            ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
-            loss_actor = -torch.mean(ratio_PPO * advantages) - 0.01 * entropy.mean()
-            loss_critic = (returns - values).pow(2).mean()
+        n_sample = advantages.shape[0]
+        n_batch = (n_sample - 1) // self.batch_size + 1
+        idx = np.arange(n_sample)
+        np.random.shuffle(idx)
+        for k, v in trajectories.items():
+            trajectories[k] = v[idx]
+        advantages, returns = advantages[idx], returns[idx]
 
-            self.opt_actor.zero_grad()
-            loss_actor.backward()
-            self.opt_actor.step()
-            del(loss_actor)
+        for i_epoch in range(self.n_epoch):
+            for i_batch in range(n_batch):
+                idx_start = self.batch_size * i_batch
+                idx_end = self.batch_size * (i_batch + 1)
+                (states, actions, next_states, rewards, old_log_probs,
+                 old_values, dones) = [trajectories[k][idx_start:idx_end]
+                                       for k in self.buffer_attrs]
+                advantages_batch = advantages[idx_start:idx_end]
+                returns_batch = returns[idx_start:idx_end]
 
-            self.opt_critic.zero_grad()
-            loss_critic.backward()
-            self.opt_critic.step()
-            del(loss_critic)
+                _, log_probs, entropy, values = self.model(states, actions)
+                ratio = torch.exp(log_probs - old_log_probs)
+                ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
+                ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
+                loss_actor = -torch.mean(ratio_PPO * advantages_batch) - 0.01 * torch.mean(entropy)
+                loss_critic = (returns_batch - values).pow(2).mean()
+
+                self.opt_actor.zero_grad()
+                loss_actor.backward()
+                self.opt_actor.step()
+                del(loss_actor)
+
+                self.opt_critic.zero_grad()
+                loss_critic.backward()
+                self.opt_critic.step()
+                del(loss_critic)
 
         return score
