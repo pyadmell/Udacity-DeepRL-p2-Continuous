@@ -19,8 +19,8 @@ class GaussianActorCriticNetwork(nn.Module):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.fc_actor = FCNetwork(state_dim, action_dim, hiddens_actor, last_func=F.tanh)
-        self.fc_critic = FCNetwork(state_dim, 1, hiddens_critic, last_func=F.softplus)
         self.sigma = nn.Parameter(torch.zeros(1))
+        self.fc_critic = FCNetwork(state_dim, 1, hiddens_critic)
 
     def forward(self, states, actions=None):
         mu = self.fc_actor(states)
