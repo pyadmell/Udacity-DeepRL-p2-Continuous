@@ -36,4 +36,4 @@ class GaussianActorCriticNetwork(nn.Module):
         return actions, log_prob, entropy, value
 
     def state_values(self, states):
-        return self.fc_critic(states)
+        return self.fc_critic(states).squeeze(-1)
