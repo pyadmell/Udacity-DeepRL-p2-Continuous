@@ -13,8 +13,8 @@ class PPOAgent:
         "rewards", "log_probs", "values", "dones",
     ]
 
-    def __init__(self, env, model, rollout=4, tmax=50, n_epoch=20,
-                 batch_size=128, gamma=0.995, delta=0.96, eps=0.20, device="cpu"):
+    def __init__(self, env, model, tmax=50, n_epoch=20,
+                 batch_size=128, gamma=0.995, delta=0.96, eps=0.10, device="cpu"):
         """PPO Agent
         Parameters
         ----------
