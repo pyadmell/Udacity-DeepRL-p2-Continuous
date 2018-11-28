@@ -1,12 +1,19 @@
 """
 """
 
+import sys
 import numpy as np
 import torch
 from unityagents import UnityEnvironment
 
 from PPO import GaussianActorCriticNetwork
 from PPO import PPOAgent
+
+
+if sys.platform == "darwin":
+    binary_path = "./bin/Reacher.app"
+else:
+    binary_path = "./bin/Reacher_Windows_x86_64/Reacher.exe"
 
 
 def get_env_info(env):
@@ -48,7 +55,7 @@ def simple_test():
 
 def agent_test():
     print(" --- initialize env   ... ", end=" ")
-    env = UnityEnvironment(file_name='bin/Reacher_Windows_x86_64/Reacher.exe')
+    env = UnityEnvironment(file_name=binary_path)
     print("Done.")
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
@@ -73,7 +80,7 @@ def agent_test():
 
 def train_test():
     print(" --- initialize env   ... ", end=" ")
-    env = UnityEnvironment(file_name='bin/Reacher_Windows_x86_64/Reacher.exe')
+    env = UnityEnvironment(file_name=binary_path)
     print("Done.")
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
