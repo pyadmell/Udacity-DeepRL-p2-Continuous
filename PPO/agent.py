@@ -60,7 +60,8 @@ class PPOAgent:
             memory["actions"], memory["log_probs"], _, memory["values"] = pred
 
             # one step forward
-            env_info = self.env.step(memory["actions"].numpy())[self.brain_name]
+            actions_np = memory["actions"].cpu().numpy()
+            env_info = self.env.step(actions_np)[self.brain_name]
             memory["next_states"] = self.to_tensor(env_info.vector_observations)
             memory["rewards"] = self.to_tensor(env_info.rewards)
             memory["dones"] = self.to_tensor(env_info.local_done, dtype=np.uint8)
@@ -82,11 +83,11 @@ class PPOAgent:
         n_step, n_agent = rewards.shape
 
         # Create empty buffer
-        GAE = torch.zeros_like(rewards)
-        returns = torch.zeros_like(rewards)
+        GAE = torch.zeros_like(rewards).float().to(self.device)
+        returns = torch.zeros_like(rewards).float().to(self.device)
 
         # Set start values
-        GAE_current = torch.zeros(n_agent)
+        GAE_current = torch.zeros(n_agent).float().to(self.device)
         returns_current = last_values
         values_next = last_values
 

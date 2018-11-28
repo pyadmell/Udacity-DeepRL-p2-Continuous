@@ -9,6 +9,7 @@ from unityagents import UnityEnvironment
 from PPO import GaussianActorCriticNetwork
 from PPO import PPOAgent
 
+device = "cpu"
 
 if sys.platform == "darwin":
     binary_path = "./bin/Reacher.app"
@@ -32,9 +33,9 @@ def get_env_info(env):
 def simple_test():
     model = GaussianActorCriticNetwork(state_dim=4, action_dim=4)
     xvals = np.random.randn(100, 4)
-    x = torch.from_numpy(xvals).float()
+    x = torch.from_numpy(xvals).float().to(device)
     acts = np.random.randn(100, 4)
-    actions = torch.from_numpy(xvals).float()
+    actions = torch.from_numpy(xvals).float().to(device)
     print(" ---- x")
     print(f"   shape = {x.shape}")
     print(x[:5])
@@ -62,7 +63,7 @@ def agent_test():
     model = GaussianActorCriticNetwork(state_dim, action_dim)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=1000)
+    agent = PPOAgent(env, model, tmax=1000, device=device)
     print("Done.")
     print(agent.last_states)
     print(" --- collect trajectories ... ", end=" ")
@@ -88,7 +89,7 @@ def train_test():
         hiddens_actor=[256, 32], hiddens_critic=[256, 32], sigma=0.1)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=2048, n_epoch=10, batch_size=64)
+    agent = PPOAgent(env, model, tmax=2048, n_epoch=10, batch_size=64, device=device)
     print("Done.")
     n_step = 300
     for step in range(n_step):

@@ -26,7 +26,7 @@ class GaussianActorCriticNetwork(nn.Module):
         mu = self.fc_actor(states)
         value = self.fc_critic(states).squeeze(-1)
 
-        v_sigma = self.sigma * torch.ones(self.action_dim)
+        v_sigma = self.sigma
         dist = torch.distributions.Normal(mu, v_sigma)
         if actions is None:
             actions = dist.sample()
