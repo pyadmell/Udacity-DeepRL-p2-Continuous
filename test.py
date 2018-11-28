@@ -95,6 +95,7 @@ def train_test():
         agent.reset()
         score = agent.step()
         print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}")
+        sys.stdout.flush()
 
 if __name__ == "__main__":
     train_test()
