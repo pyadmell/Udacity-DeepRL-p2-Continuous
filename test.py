@@ -13,6 +13,8 @@ device = "cpu"
 
 if sys.platform == "darwin":
     binary_path = "./bin/Reacher.app"
+elif sys.platform == "linux":
+    binary_path = "./bin/Reacher_Linux_NoVis/Reacher.x86_64"
 else:
     binary_path = "./bin/Reacher_Windows_x86_64/Reacher.exe"
 
