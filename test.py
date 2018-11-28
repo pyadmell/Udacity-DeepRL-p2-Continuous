@@ -34,6 +34,7 @@ def get_env_info(env):
 
 def simple_test():
     model = GaussianActorCriticNetwork(state_dim=4, action_dim=4)
+    model = model.to(device)
     xvals = np.random.randn(100, 4)
     x = torch.from_numpy(xvals).float().to(device)
     acts = np.random.randn(100, 4)
@@ -63,6 +64,7 @@ def agent_test():
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
     model = GaussianActorCriticNetwork(state_dim, action_dim)
+    model = model.to(device)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
     agent = PPOAgent(env, model, tmax=1000, device=device)
@@ -89,6 +91,7 @@ def train_test():
     print(" --- initialize model ... ", end=" ")
     model = GaussianActorCriticNetwork(state_dim, action_dim,
         hiddens_actor=[256, 32], hiddens_critic=[256, 32], sigma=0.1)
+    model = model.to(device)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
     agent = PPOAgent(env, model, tmax=2048, n_epoch=10, batch_size=64, device=device)
