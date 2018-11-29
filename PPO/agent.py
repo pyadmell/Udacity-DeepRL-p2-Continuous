@@ -153,12 +153,14 @@ class PPOAgent:
                 ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
                 ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
                 loss_actor = -torch.mean(ratio_PPO * advantages_batch)
-                loss_critic = (returns_batch - values).pow(2).mean()
 
                 self.opt_actor.zero_grad()
                 loss_actor.backward()
                 self.opt_actor.step()
                 del(loss_actor)
+
+                values = self.model.state_values(states)
+                loss_critic = 0.5 * (returns_batch - values).pow(2).mean()
 
                 self.opt_critic.zero_grad()
                 loss_critic.backward()
