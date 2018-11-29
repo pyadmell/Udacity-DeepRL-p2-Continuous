@@ -97,10 +97,14 @@ def train_test():
     agent = PPOAgent(env, model, tmax=2048, n_epoch=10, batch_size=64, device=device)
     print("Done.")
     n_step = 300
+    sigma = 0.5
     for step in range(n_step):
-        agent.reset()
+        sigma *= 0.995
+        if sigma < 0.1:
+            sigma = 0.1
+        model.sigma = sigma
         score = agent.step()
-        print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}")
+        print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}, sigma = {sigma:.3f}")
         sys.stdout.flush()
 
 if __name__ == "__main__":
