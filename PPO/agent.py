@@ -13,7 +13,7 @@ class PPOAgent:
         "rewards", "log_probs", "values", "dones",
     ]
 
-    def __init__(self, env, model, tmax=50, n_epoch=20,
+    def __init__(self, env, model, tmax=50, n_rollout=5, n_epoch=20,
                  batch_size=128, gamma=0.995, delta=0.96, eps=0.10, device="cpu"):
         """PPO Agent
         Parameters
@@ -30,14 +30,17 @@ class PPOAgent:
         self.state_dim = model.state_dim
         self.action_dim = model.action_dim
         self.tmax = tmax
+        self.n_rollout = n_rollout
         self.n_epoch = n_epoch
         self.batch_size = batch_size
         self.gamma = gamma
         self.delta = delta
         self.eps = eps
         self.device = device
+        self.buffer = None
 
         self.reset()
+        self.clear_buffer()
 
     def to_tensor(self, x, dtype=np.float32):
         return torch.from_numpy(np.array(x).astype(dtype)).to(self.device)
@@ -47,8 +50,14 @@ class PPOAgent:
         env_info = self.env.reset(train_mode=True)[self.brain_name]
         self.last_states = self.to_tensor(env_info.vector_observations)
 
+    def clear_buffer(self):
+        if not self.buffer is None:
+            del(self.buffer)
+        self.buffer = dict([(k, []) for k in self.buffer_attrs])
+        self.rollout = 0
+
     def collect_trajectories(self):
-        buffer = dict([(k, []) for k in self.buffer_attrs])
+        score = None
 
         for t in range(self.tmax):
             memory = {}
@@ -66,18 +75,24 @@ class PPOAgent:
             memory["rewards"] = self.to_tensor(env_info.rewards)
             memory["dones"] = self.to_tensor(env_info.local_done, dtype=np.uint8)
 
+            if score is None:
+                score = memory["rewards"].cpu().float()
+            else:
+                score += memory["rewards"].cpu().float()
+
             # stack one step memory to buffer
             for k, v in memory.items():
-                buffer[k].append(v.unsqueeze(0))
+                self.buffer[k].append(v.unsqueeze(0))
 
             self.last_states = memory["next_states"]
+            
+            # break loop if any episode is finished
             if memory["dones"].any():
                 break
 
-        for k, v in buffer.items():
-            buffer[k] = torch.cat(v, dim=0)
-
-        return buffer
+        self.rollout += 1
+        score_mean = score.mean()
+        return score_mean
 
     def calc_returns(self, rewards, values, dones, last_values):
         n_step, n_agent = rewards.shape
@@ -115,10 +130,14 @@ class PPOAgent:
         self.model.eval()
 
         # Collect Trajetories
-        trajectories = self.collect_trajectories()
+        score = self.collect_trajectories()
 
-        # Calculate Score (averaged over agents)
-        score = trajectories["rewards"].sum(dim=0).mean()
+        if self.rollout < self.n_rollout:
+            return score
+
+        trajectories = {}
+        for k, v in self.buffer.items():
+            trajectories[k] = torch.cat(v, dim=0)
 
         # Append Values collesponding to last states
         with torch.no_grad():
@@ -165,4 +184,5 @@ class PPOAgent:
                 self.opt_critic.step()
                 del(loss_critic)
 
+        self.clear_buffer()
         return score

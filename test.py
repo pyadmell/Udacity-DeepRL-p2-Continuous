@@ -94,7 +94,8 @@ def train_test():
     model = model.to(device)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=2048, n_epoch=10, batch_size=64, device=device)
+    agent = PPOAgent(env, model, tmax=1024, n_rollout=1, eps=0.05,
+                     n_epoch=10, batch_size=128, device=device)
     print("Done.")
     n_step = 300
     for step in range(n_step):
