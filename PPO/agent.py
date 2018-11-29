@@ -79,7 +79,7 @@ class PPOAgent:
 
         return buffer
 
-    def calc_returns(self, rewards, values, last_values):
+    def calc_returns(self, rewards, values, dones, last_values):
         n_step, n_agent = rewards.shape
 
         # Create empty buffer
@@ -94,12 +94,13 @@ class PPOAgent:
         for irow in reversed(range(n_step)):
             values_current = values[irow]
             rewards_current = rewards[irow]
+            gamma = self.gamma * (1. - dones[irow].float())
 
             # Calculate TD Error
-            td_error = rewards_current + self.gamma * values_next - values_current
+            td_error = rewards_current + gamma * values_next - values_current
             # Update GAE, returns
-            GAE_current = td_error + self.gamma * self.delta * GAE_current
-            returns_current = rewards_current + self.gamma * returns_current
+            GAE_current = td_error + gamma * self.delta * GAE_current
+            returns_current = rewards_current + gamma * returns_current
             # Set GAE, returns to buffer
             GAE[irow] = GAE_current
             returns[irow] = returns_current
@@ -124,6 +125,7 @@ class PPOAgent:
             last_values = self.model.state_values(self.last_states)
         advantages, returns = self.calc_returns(trajectories["rewards"],
                                                 trajectories["values"],
+                                                trajectories["dones"],
                                                 last_values)
 
         # Mini-batch update
