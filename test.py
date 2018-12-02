@@ -103,8 +103,9 @@ def train_test():
         if sigma < 0.1:
             sigma = 0.1
         model.sigma = sigma
-        score = agent.step()
+        score, loss_actor, loss_critic = agent.step()
         print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}, sigma = {sigma:.3f}")
+        print(f"   loss : actor = {loss_actor:.6f}, critic = {loss_critic:.6f}")
         sys.stdout.flush()
 
 if __name__ == "__main__":

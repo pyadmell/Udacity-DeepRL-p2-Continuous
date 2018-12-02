@@ -167,4 +167,17 @@ class PPOAgent:
                 self.opt_critic.step()
                 del(loss_critic)
 
-        return score
+        self.model.eval()
+        with torch.no_grad():
+            (states, actions, next_states, rewards, old_log_probs,
+             old_values, dones) = [trajectories[k] for k in self.buffer_attrs]
+            _, log_probs, entropy, values = self.model(states, actions)
+            ratio = torch.exp(log_probs - old_log_probs)
+            ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
+            ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
+            loss_actor = -torch.mean(ratio_PPO * advantages)
+
+            values = self.model.state_values(states)
+            loss_critic = 0.5 * (returns - values).pow(2).mean()
+
+        return score, loss_actor, loss_critic
