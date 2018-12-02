@@ -156,6 +156,7 @@ class PPOAgent:
 
                 self.opt_actor.zero_grad()
                 loss_actor.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.fc_actor.parameters(), 1)
                 self.opt_actor.step()
                 del(loss_actor)
 
@@ -164,6 +165,7 @@ class PPOAgent:
 
                 self.opt_critic.zero_grad()
                 loss_critic.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.fc_critic.parameters(), 1)
                 self.opt_critic.step()
                 del(loss_critic)
 
