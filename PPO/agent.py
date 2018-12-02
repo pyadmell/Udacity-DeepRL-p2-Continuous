@@ -25,8 +25,8 @@ class PPOAgent:
         """
         self.env = env
         self.model = model
-        self.opt_actor = optim.Adam(model.fc_actor.parameters(), lr=1e-4)
-        self.opt_critic = optim.Adam(model.fc_critic.parameters(), lr=1e-4)
+        self.opt_actor = optim.Adam(model.fc_actor.parameters(), lr=1e-5)
+        self.opt_critic = optim.Adam(model.fc_critic.parameters(), lr=1e-5)
         self.state_dim = model.state_dim
         self.action_dim = model.action_dim
         self.tmax = tmax

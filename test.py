@@ -90,16 +90,16 @@ def train_test():
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
     model = GaussianActorCriticNetwork(state_dim, action_dim,
-        hiddens_actor=[256, 32], hiddens_critic=[256, 32], sigma=0.1)
+        hiddens_actor=[512, 256], hiddens_critic=[512, 256], sigma=0.1)
     model = model.to(device)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=2048, n_epoch=10, batch_size=64, device=device)
+    agent = PPOAgent(env, model, tmax=2048, n_epoch=20, batch_size=128, device=device)
     print("Done.")
     n_step = 300
-    sigma = 0.5
+    sigma = 1.
     for step in range(n_step):
-        sigma *= 0.995
+        sigma *= 0.95
         if sigma < 0.1:
             sigma = 0.1
         model.sigma = sigma
