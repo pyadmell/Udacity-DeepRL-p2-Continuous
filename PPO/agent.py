@@ -127,6 +127,7 @@ class PPOAgent:
                                                 trajectories["values"],
                                                 trajectories["dones"],
                                                 last_values)
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-6)
 
         # Mini-batch update
         self.model.train()
