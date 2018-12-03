@@ -89,23 +89,18 @@ def train_test():
     print("Done.")
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
-    model = GaussianActorCriticNetwork(state_dim, action_dim,
-        hiddens_actor=[512, 256], hiddens_critic=[512, 256], sigma=0.1)
+    model = GaussianActorCriticNetwork(state_dim, action_dim, hiddens=[256, 128])
     model = model.to(device)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=2048, n_epoch=20, batch_size=128, device=device)
+    agent = PPOAgent(env, model, tmax=2048, n_epoch=20, batch_size=128, eps=0.1, device=device)
     print("Done.")
-    n_step = 300
-    sigma = 1.
+    n_step = 2000
     for step in range(n_step):
-        sigma *= 0.95
-        if sigma < 0.1:
-            sigma = 0.1
-        model.sigma = sigma
         score, loss_actor, loss_critic = agent.step()
-        print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}, sigma = {sigma:.3f}")
+        print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}")
         print(f"   loss : actor = {loss_actor:.6f}, critic = {loss_critic:.6f}")
+        print(f"   model.sigma : {model.sigma.detach().cpu().numpy()}")
         sys.stdout.flush()
 
 if __name__ == "__main__":

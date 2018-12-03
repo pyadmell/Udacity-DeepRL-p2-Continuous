@@ -14,7 +14,7 @@ class PPOAgent:
     ]
 
     def __init__(self, env, model, tmax=50, n_epoch=20,
-                 batch_size=128, gamma=0.995, delta=0.96, eps=0.10, device="cpu"):
+                 batch_size=128, gamma=0.99, delta=0.96, eps=0.10, device="cpu"):
         """PPO Agent
         Parameters
         ----------
@@ -25,8 +25,7 @@ class PPOAgent:
         """
         self.env = env
         self.model = model
-        self.opt_actor = optim.Adam(model.fc_actor.parameters(), lr=1e-5)
-        self.opt_critic = optim.Adam(model.fc_critic.parameters(), lr=1e-5)
+        self.opt_model = optim.Adam(model.parameters(), lr=1e-4)
         self.state_dim = model.state_dim
         self.action_dim = model.action_dim
         self.tmax = tmax
@@ -154,21 +153,14 @@ class PPOAgent:
                 ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
                 ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
                 loss_actor = -torch.mean(ratio_PPO * advantages_batch)
-
-                self.opt_actor.zero_grad()
-                loss_actor.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.fc_actor.parameters(), 1)
-                self.opt_actor.step()
-                del(loss_actor)
-
-                values = self.model.state_values(states)
                 loss_critic = 0.5 * (returns_batch - values).pow(2).mean()
+                loss = loss_actor + loss_critic
 
-                self.opt_critic.zero_grad()
-                loss_critic.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.fc_critic.parameters(), 1)
-                self.opt_critic.step()
-                del(loss_critic)
+                self.opt_model.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 10.)
+                self.opt_model.step()
+                del(loss)
 
         self.model.eval()
         with torch.no_grad():
@@ -178,9 +170,7 @@ class PPOAgent:
             ratio = torch.exp(log_probs - old_log_probs)
             ratio_clamped = torch.clamp(ratio, 1 - self.eps, 1 + self.eps)
             ratio_PPO = torch.where(ratio < ratio_clamped, ratio, ratio_clamped)
-            loss_actor = -torch.mean(ratio_PPO * advantages)
-
-            values = self.model.state_values(states)
+            loss_actor = -torch.mean(ratio_PPO * advantages) - 0.01 * entropy.mean()
             loss_critic = 0.5 * (returns - values).pow(2).mean()
 
         return score, loss_actor, loss_critic

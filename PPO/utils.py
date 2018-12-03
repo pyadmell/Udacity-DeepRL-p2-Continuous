@@ -8,12 +8,9 @@ def to_tensor(self, np_array):
 
 
 class FCNetwork(nn.Module):
-    def __init__(self, input_dim, output_dim, hiddens,
-                 func=F.leaky_relu, last_func=None):
+    def __init__(self, input_dim, hiddens, func=F.leaky_relu):
         super(FCNetwork, self).__init__()
-
         self.func =  func
-        self.last_func = last_func
 
         # Input Layer
         fc_first = nn.Linear(input_dim, hiddens[0])
@@ -22,8 +19,6 @@ class FCNetwork(nn.Module):
         layer_sizes = zip(hiddens[:-1], hiddens[1:])
         self.layers.extend([nn.Linear(h1, h2)
                             for h1, h2 in layer_sizes])
-        # Output Layers
-        self.layers.append(nn.Linear(hiddens[-1], output_dim))
 
         def xavier(m):
             if isinstance(m, nn.Linear):
@@ -31,12 +26,7 @@ class FCNetwork(nn.Module):
         self.layers.apply(xavier)
 
     def forward(self, x):
-        for layer in self.layers[:-1]:
+        for layer in self.layers:
             x = self.func(layer(x))
-
-        if self.last_func is None:
-            x = self.layers[-1](x)
-        else:
-            x = self.last_func(self.layers[-1](x))
 
         return x
