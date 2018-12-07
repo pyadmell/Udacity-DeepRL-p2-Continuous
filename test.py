@@ -1,6 +1,3 @@
-"""
-"""
-
 import sys
 import numpy as np
 import torch
@@ -32,56 +29,7 @@ def get_env_info(env):
     return n_agent, state_dim, action_dim
 
 
-def simple_test():
-    model = GaussianActorCriticNetwork(state_dim=4, action_dim=4)
-    model = model.to(device)
-    xvals = np.random.randn(100, 4)
-    x = torch.from_numpy(xvals).float().to(device)
-    acts = np.random.randn(100, 4)
-    actions = torch.from_numpy(xvals).float().to(device)
-    print(" ---- x")
-    print(f"   shape = {x.shape}")
-    print(x[:5])
-    print(" ---- actions")
-    print(actions[:5])
-    print(f"   shape = {actions.shape}")
-    actions, log_probs, entropy, v = model.forward(x, actions)
-    print(" ---- actions")
-    print(actions[:5])
-    print(f"   shape = {actions.shape}")
-    print(" ---- log_probs")
-    print(log_probs[:5])
-    print(f"   shape = {log_probs.shape}")
-    print(" ---- v")
-    print(v[:5])
-    print(f"   shape = {v.shape}")
 
-
-def agent_test():
-    print(" --- initialize env   ... ", end=" ")
-    env = UnityEnvironment(file_name=binary_path)
-    print("Done.")
-    n_agent, state_dim, action_dim = get_env_info(env)
-    print(" --- initialize model ... ", end=" ")
-    model = GaussianActorCriticNetwork(state_dim, action_dim)
-    model = model.to(device)
-    print("Done.")
-    print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=1000, device=device)
-    print("Done.")
-    print(agent.last_states)
-    print(" --- collect trajectories ... ", end=" ")
-    trajectories = agent.collect_trajectories()
-    print("Done.")
-    for k, v in trajectories.items():
-        print(f" {k} : {v.shape}")
-    print(" --- calc returnes ... ", end=" ")
-    last_values = model.state_values(agent.last_states)
-    advantages, returns = agent.calc_returns(trajectories["rewards"],
-                                             trajectories["values"], last_values)
-    print("Done.")
-    print("  advantages -> ", advantages.shape)
-    print("  returns -> ", returns.shape)
 
 def train_test():
     print(" --- initialize env   ... ", end=" ")
