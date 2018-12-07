@@ -89,11 +89,11 @@ def train_test():
     print("Done.")
     n_agent, state_dim, action_dim = get_env_info(env)
     print(" --- initialize model ... ", end=" ")
-    model = GaussianActorCriticNetwork(state_dim, action_dim, hiddens=[256, 128])
+    model = GaussianActorCriticNetwork(state_dim, action_dim, hiddens=[512, 256])
     model = model.to(device)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=256, n_epoch=20, batch_size=256, eps=0.1, device=device)
+    agent = PPOAgent(env, model, tmax=100, n_epoch=10, batch_size=128, eps=0.1, device=device)
     print("Done.")
     n_step = 20000
     n_episodes = 0
