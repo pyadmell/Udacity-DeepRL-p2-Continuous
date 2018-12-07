@@ -99,7 +99,6 @@ def train_test():
     n_episodes = 0
     for step in range(n_step):
         score, _, _ = agent.step()
-        print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}")
         scores = agent.scores_by_episode
         if n_episodes < len(scores):
             n_episodes = len(scores)
