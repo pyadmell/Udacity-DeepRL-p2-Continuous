@@ -139,6 +139,15 @@ class PPOAgent:
                                                 last_values)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-6)
 
+        # concat all agent 
+        for k, v in trajectories.items():
+            if len(v.shape) == 3:
+                trajectories[k] = v.reshape([-1, v.shape[-1]])
+            else:
+                trajectories[k] = v.reshape([-1])
+        advantages = advantages.reshape([-1])
+        returns = returns.reshape([-1])
+
         # Mini-batch update
         self.model.train()
         n_sample = advantages.shape[0]
