@@ -13,9 +13,6 @@ class GaussianActorCriticNetwork(nn.Module):
         self.fc_hidden = FCNetwork(state_dim, hiddens)
         self.fc_actor = nn.Linear(hiddens[-1], action_dim)
         self.fc_critic = nn.Linear(hiddens[-1], 1)
-        print(self.fc_hidden)
-        print(self.fc_actor)
-        print(self.fc_critic)
         self.sigma = nn.Parameter(torch.zeros(action_dim))
 
     def forward(self, states, actions=None):
