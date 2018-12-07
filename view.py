@@ -40,7 +40,9 @@ def view():
     model = model.to(device)
 
     # load best Model
-    model.load_state_dict(torch.load("bestmodel.pth"))
+    state_dict = torch.load("bestmodel.pth",
+                            map_location=lambda storage, loc: storage)
+    model.load_state_dict(state_dict)
 
     # Reset Env
     brain_name = env.brain_names[0]
