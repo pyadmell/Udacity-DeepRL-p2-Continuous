@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import pickle
 import torch
 from unityagents import UnityEnvironment
 
@@ -50,14 +51,22 @@ def train_test():
         scores = agent.scores_by_episode
         if n_episodes < len(scores):
             n_episodes = len(scores)
-            print(f" episode {n_episodes} : rewards = {scores[-1]:.2f}", end="")
+            print(f" episode #{n_episodes} : score = {scores[-1]:.2f}", end="")
             if 100 <= n_episodes:
                 rewards_ma = np.mean(scores[-100:])
-                print(f", last 100 mean = {rewards_ma:.2f}")
+                print(f", mean score of last 100 episodes = {rewards_ma:.2f}")
+                if 30. <= rewards_ma:
+                    torch.save(model.state_dict(), "bestmodel.pth")
+                    with open('rewards.pickle', 'wb') as fp:
+                        pickle.dump(scores, fp)
+                    print("\n ==== Achieved criteria! Model is saved.")
+                    break
             else:
                 print()
 
         sys.stdout.flush()
+
+    print("Finished.")
 
 if __name__ == "__main__":
     train_test()
