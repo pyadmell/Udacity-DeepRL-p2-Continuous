@@ -12,7 +12,7 @@ class PPOAgent:
     ]
 
     def __init__(self, env, model, tmax=50, n_epoch=20,
-                 batch_size=128, gamma=0.99, delta=0.96, eps=0.10, device="cpu"):
+                 batch_size=128, gamma=0.99, gae_lambda=0.96, eps=0.10, device="cpu"):
         self.env = env
         self.model = model
         self.opt_model = optim.Adam(model.parameters(), lr=1e-4)
@@ -22,7 +22,7 @@ class PPOAgent:
         self.n_epoch = n_epoch
         self.batch_size = batch_size
         self.gamma = gamma
-        self.delta = delta
+        self.gae_lambda = gae_lambda
         self.eps = eps
         self.device = device
 
@@ -99,7 +99,7 @@ class PPOAgent:
             # Calculate TD Error
             td_error = rewards_current + gamma * values_next - values_current
             # Update GAE, returns
-            GAE_current = td_error + gamma * self.delta * GAE_current
+            GAE_current = td_error + gamma * self.gae_lambda * GAE_current
             returns_current = rewards_current + gamma * returns_current
             # Set GAE, returns to buffer
             GAE[irow] = GAE_current
