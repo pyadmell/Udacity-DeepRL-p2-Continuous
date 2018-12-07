@@ -102,10 +102,10 @@ def train_test():
         scores = agent.scores_by_episode
         if n_episodes < len(scores):
             n_episodes = len(scores)
-            print(f" episode {n_episodes} : rewards = {scores[-1]}", end="")
+            print(f" episode {n_episodes} : rewards = {scores[-1]:.2f}", end="")
             if 100 <= n_episodes:
-                rewards_ma = scores[-100:].mean()
-                print(f", last 100 mean = {rewards_ma}")
+                rewards_ma = np.mean(scores[-100:])
+                print(f", last 100 mean = {rewards_ma:.2f}")
             else:
                 print()
 
