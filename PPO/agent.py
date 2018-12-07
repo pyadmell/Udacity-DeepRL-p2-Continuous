@@ -11,8 +11,8 @@ class PPOAgent:
         "rewards", "log_probs", "values", "dones",
     ]
 
-    def __init__(self, env, model, tmax=50, n_epoch=20,
-                 batch_size=128, gamma=0.99, gae_lambda=0.96, eps=0.10, device="cpu"):
+    def __init__(self, env, model, tmax=128, n_epoch=10, batch_size=128,
+                 gamma=0.99, gae_lambda=0.96, eps=0.10, device="cpu"):
         self.env = env
         self.model = model
         self.opt_model = optim.Adam(model.parameters(), lr=1e-4)
