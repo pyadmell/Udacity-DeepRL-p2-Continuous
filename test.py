@@ -98,7 +98,7 @@ def train_test():
     n_step = 20000
     n_episodes = 0
     for step in range(n_step):
-        score, _, _ = agent.step()
+        agent.step()
         scores = agent.scores_by_episode
         if n_episodes < len(scores):
             n_episodes = len(scores)
