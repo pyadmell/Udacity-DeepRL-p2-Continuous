@@ -9,7 +9,7 @@ from unityagents import UnityEnvironment
 from PPO import GaussianActorCriticNetwork
 from PPO import PPOAgent
 
-device = "cpu"
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 if sys.platform == "darwin":
     binary_path = "./bin/Reacher.app"
