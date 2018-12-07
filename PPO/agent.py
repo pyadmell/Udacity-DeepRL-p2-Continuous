@@ -1,5 +1,3 @@
-"""PPO agent
-"""
 import numpy as np
 import torch
 import torch.nn as nn
@@ -15,14 +13,6 @@ class PPOAgent:
 
     def __init__(self, env, model, tmax=50, n_epoch=20,
                  batch_size=128, gamma=0.99, delta=0.96, eps=0.10, device="cpu"):
-        """PPO Agent
-        Parameters
-        ----------
-        environment :
-            対象環境オブジェクト
-        network :
-            予測モデルそのもの
-        """
         self.env = env
         self.model = model
         self.opt_model = optim.Adam(model.parameters(), lr=1e-4)
@@ -120,8 +110,6 @@ class PPOAgent:
         return GAE, returns
 
     def step(self):
-        """1ステップ進める
-        """
         self.model.eval()
 
         # Collect Trajetories
