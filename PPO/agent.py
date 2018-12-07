@@ -57,8 +57,8 @@ class PPOAgent:
 
             # draw action from model
             memory["states"] = self.last_states
-            with torch.no_grad():
-                pred = self.model(memory["states"])
+            pred = self.model(memory["states"])
+            pred = [v.detach() for v in pred]
             memory["actions"], memory["log_probs"], _, memory["values"] = pred
 
             # one step forward
@@ -131,8 +131,7 @@ class PPOAgent:
         score = trajectories["rewards"].sum(dim=0).mean()
 
         # Append Values collesponding to last states
-        with torch.no_grad():
-            last_values = self.model.state_values(self.last_states)
+        last_values = self.model.state_values(self.last_states).detach()
         advantages, returns = self.calc_returns(trajectories["rewards"],
                                                 trajectories["values"],
                                                 trajectories["dones"],
