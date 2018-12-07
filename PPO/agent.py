@@ -36,6 +36,9 @@ class PPOAgent:
         self.eps = eps
         self.device = device
 
+        self.rewards = None
+        self.scores_by_episode = []
+
         self.reset()
 
     def to_tensor(self, x, dtype=np.float32):
@@ -70,8 +73,16 @@ class PPOAgent:
                 buffer[k].append(v.unsqueeze(0))
 
             self.last_states = memory["next_states"]
+            r = np.array(env_info.rewards)[None,:]
+            if self.rewards is None:
+                self.rewards = r
+            else:
+                self.rewards = np.r_[self.rewards, r]
+
             if memory["dones"].any():
-                break
+                rewards_mean = self.rewards.sum(axis=0).mean()
+                self.scores_by_episode.append(rewards_mean)
+                self.rewards = None
 
         for k, v in buffer.items():
             buffer[k] = torch.cat(v, dim=0)

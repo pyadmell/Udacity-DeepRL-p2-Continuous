@@ -93,14 +93,23 @@ def train_test():
     model = model.to(device)
     print("Done.")
     print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=2048, n_epoch=20, batch_size=128, eps=0.1, device=device)
+    agent = PPOAgent(env, model, tmax=256, n_epoch=20, batch_size=256, eps=0.1, device=device)
     print("Done.")
-    n_step = 2000
+    n_step = 20000
+    n_episodes = 0
     for step in range(n_step):
-        score, loss_actor, loss_critic = agent.step()
+        score, _, _ = agent.step()
         print(f"{step+1:04d}/{n_step:04d} score = {score:.2f}")
-        print(f"   loss : actor = {loss_actor:.6f}, critic = {loss_critic:.6f}")
-        print(f"   model.sigma : {model.sigma.detach().cpu().numpy()}")
+        scores = agent.scores_by_episode
+        if n_episodes < len(scores):
+            n_episodes = len(scores)
+            print(f" episode {n_episodes} : rewards = {scores[-1]}", end="")
+            if 100 <= n_episodes:
+                rewards_ma = scores[-100:].mean()
+                print(f", last 100 mean = {rewards_ma}")
+            else:
+                print()
+
         sys.stdout.flush()
 
 if __name__ == "__main__":
