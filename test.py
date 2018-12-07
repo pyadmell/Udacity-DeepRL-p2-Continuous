@@ -7,15 +7,6 @@ from unityagents import UnityEnvironment
 from PPO import GaussianActorCriticNetwork
 from PPO import PPOAgent
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
-if sys.platform == "darwin":
-    binary_path = "./bin/Reacher.app"
-elif sys.platform == "linux":
-    binary_path = "./bin/Reacher_Linux_NoVis/Reacher.x86_64"
-else:
-    binary_path = "./bin/Reacher_Windows_x86_64/Reacher.exe"
-
 
 def get_env_info(env):
     # reset the environment
@@ -30,21 +21,24 @@ def get_env_info(env):
     return n_agent, state_dim, action_dim
 
 
+def train():
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+    if sys.platform == "darwin":
+        binary_path = "./bin/Reacher.app"
+    elif sys.platform == "linux":
+        binary_path = "./bin/Reacher_Linux_NoVis/Reacher.x86_64"
+    else:
+        binary_path = "./bin/Reacher_Windows_x86_64/Reacher.exe"
 
-def train_test():
-    print(" --- initialize env   ... ", end=" ")
     env = UnityEnvironment(file_name=binary_path)
-    print("Done.")
     n_agent, state_dim, action_dim = get_env_info(env)
-    print(" --- initialize model ... ", end=" ")
     model = GaussianActorCriticNetwork(state_dim, action_dim, hiddens=[512, 256])
     model = model.to(device)
-    print("Done.")
-    print(" --- initialize agent ... ", end=" ")
-    agent = PPOAgent(env, model, tmax=100, n_epoch=10, batch_size=128, eps=0.1, device=device)
-    print("Done.")
-    n_step = 20000
+    agent = PPOAgent(env, model, tmax=128, n_epoch=10,
+                     batch_size=128, eps=0.1, device=device)
+
+    n_step = 2000
     n_episodes = 0
     for step in range(n_step):
         agent.step()
@@ -69,4 +63,4 @@ def train_test():
     print("Finished.")
 
 if __name__ == "__main__":
-    train_test()
+    train()
