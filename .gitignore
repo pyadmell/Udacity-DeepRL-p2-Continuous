@@ -1,6 +1,4 @@
 *.log
-*.pth
-*.pickle
 .ipynb_checkpoints
 __pycache__
 bin/
